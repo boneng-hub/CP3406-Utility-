@@ -1,5 +1,8 @@
 package au.edu.jcu.cp3406_cp5307_utilityappstartertemplate
 
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.viewmodel.FocusViewModel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -64,40 +67,23 @@ fun UtilityAppPreview() {
 }
 
 @Composable
-fun UtilityApp() {
+fun UtilityApp(
+    focusViewModel: FocusViewModel = viewModel()
+) {
     var selectedTab by remember { mutableStateOf("Utility") }
 
-    var studyMinutes by remember { mutableIntStateOf(25) }
-    var breakMinutes by remember { mutableIntStateOf(5) }
-    var showProgressBar by remember { mutableStateOf(true) }
-    var showQuote by remember { mutableStateOf(true) }
-    var vibrationEnabled by remember { mutableStateOf(false) }
+    val uiState by focusViewModel.uiState.collectAsState()
 
-    var isStudyMode by remember { mutableStateOf(true) }
-    var isRunning by remember { mutableStateOf(false) }
-    var remainingSeconds by remember { mutableIntStateOf(studyMinutes * 60) }
-
-    val totalSeconds = if (isStudyMode) studyMinutes * 60 else breakMinutes * 60
-    val progress = if (totalSeconds > 0) {
-        1f - remainingSeconds.toFloat() / totalSeconds.toFloat()
+    val totalSeconds = if (uiState.isStudyMode) {
+        uiState.studyMinutes * 60
     } else {
-        0f
+        uiState.breakMinutes * 60
     }
 
-    LaunchedEffect(isRunning, remainingSeconds) {
-        if (isRunning && remainingSeconds > 0) {
-            delay(1000)
-            remainingSeconds--
-        }
-
-        if (isRunning && remainingSeconds == 0) {
-            isStudyMode = !isStudyMode
-            remainingSeconds = if (!isStudyMode) {
-                breakMinutes * 60
-            } else {
-                studyMinutes * 60
-            }
-        }
+    val progress = if (totalSeconds > 0) {
+        1f - uiState.remainingSeconds.toFloat() / totalSeconds.toFloat()
+    } else {
+        0f
     }
 
     Scaffold(
@@ -121,49 +107,33 @@ fun UtilityApp() {
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
                 "Utility" -> UtilityScreen(
-                    isStudyMode = isStudyMode,
-                    remainingSeconds = remainingSeconds,
+                    isStudyMode = uiState.isStudyMode,
+                    remainingSeconds = uiState.remainingSeconds,
                     progress = progress,
-                    showProgressBar = showProgressBar,
-                    showQuote = showQuote,
-                    isRunning = isRunning,
-                    onStartPauseClick = { isRunning = !isRunning },
-                    onResetClick = {
-                        isRunning = false
-                        remainingSeconds = if (isStudyMode) {
-                            studyMinutes * 60
-                        } else {
-                            breakMinutes * 60
-                        }
-                    }
+                    showProgressBar = uiState.showProgressBar,
+                    showQuote = uiState.showQuote,
+                    isRunning = uiState.isRunning,
+                    onStartPauseClick = focusViewModel::startPauseTimer,
+                    onResetClick = focusViewModel::resetTimer
                 )
 
                 "Settings" -> SettingsScreen(
-                    studyMinutes = studyMinutes,
-                    breakMinutes = breakMinutes,
-                    showProgressBar = showProgressBar,
-                    showQuote = showQuote,
-                    vibrationEnabled = vibrationEnabled,
-                    onStudyMinutesChange = {
-                        studyMinutes = it
-                        if (isStudyMode && !isRunning) {
-                            remainingSeconds = studyMinutes * 60
-                        }
-                    },
-                    onBreakMinutesChange = {
-                        breakMinutes = it
-                        if (!isStudyMode && !isRunning) {
-                            remainingSeconds = breakMinutes * 60
-                        }
-                    },
-                    onShowProgressBarChange = { showProgressBar = it },
-                    onShowQuoteChange = { showQuote = it },
-                    onVibrationEnabledChange = { vibrationEnabled = it }
+                    studyMinutes = uiState.studyMinutes,
+                    breakMinutes = uiState.breakMinutes,
+                    showProgressBar = uiState.showProgressBar,
+                    showQuote = uiState.showQuote,
+                    vibrationEnabled = uiState.vibrationEnabled,
+                    onStudyMinutesChange = focusViewModel::updateStudyMinutes,
+                    onBreakMinutesChange = focusViewModel::updateBreakMinutes,
+                    onShowProgressBarChange = focusViewModel::updateShowProgressBar,
+                    onShowQuoteChange = focusViewModel::updateShowQuote,
+                    onVibrationEnabledChange = focusViewModel::updateVibrationEnabled
                 )
             }
         }
     }
 }
+
 
 @Composable
 fun UtilityScreen(
