@@ -107,6 +107,9 @@ fun UtilityApp(
         Box(modifier = Modifier.padding(innerPadding)) {
             when (selectedTab) {
                 "Utility" -> UtilityScreen(
+                    quoteText = uiState.quoteText,
+                    isQuoteLoading = uiState.isQuoteLoading,
+                    onRefreshQuoteClick = focusViewModel::loadFocusQuote,
                     isStudyMode = uiState.isStudyMode,
                     remainingSeconds = uiState.remainingSeconds,
                     progress = progress,
@@ -143,6 +146,9 @@ fun UtilityScreen(
     showProgressBar: Boolean,
     showQuote: Boolean,
     isRunning: Boolean,
+    quoteText: String,
+    isQuoteLoading: Boolean,
+    onRefreshQuoteClick: () -> Unit,
     onStartPauseClick: () -> Unit,
     onResetClick: () -> Unit
 ) {
@@ -202,10 +208,15 @@ fun UtilityScreen(
                         text = "Daily Focus Quote",
                         style = MaterialTheme.typography.titleMedium
                     )
+
                     Text(
-                        text = "Stay focused. Small steps still move you forward.",
+                        text = if (isQuoteLoading) "Loading..." else quoteText,
                         style = MaterialTheme.typography.bodyLarge
                     )
+
+                    OutlinedButton(onClick = onRefreshQuoteClick) {
+                        Text("Refresh Quote")
+                    }
                 }
             }
         }

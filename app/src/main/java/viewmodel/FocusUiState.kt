@@ -8,5 +8,7 @@ data class FocusUiState(
     val isRunning: Boolean = false,
     val showProgressBar: Boolean = true,
     val showQuote: Boolean = true,
-    val vibrationEnabled: Boolean = false
+    val vibrationEnabled: Boolean = false,
+    val quoteText: String = "Loading focus quote...",
+    val isQuoteLoading: Boolean = false
 )

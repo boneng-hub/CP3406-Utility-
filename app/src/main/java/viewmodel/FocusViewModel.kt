@@ -8,14 +8,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-class FocusViewModel : ViewModel() {
+import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.data.QuoteRepository
+import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.di.AppContainer
+class FocusViewModel(
+    private val quoteRepository: QuoteRepository = AppContainer.quoteRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FocusUiState())
     val uiState: StateFlow<FocusUiState> = _uiState
 
     private var timerJob: Job? = null
-
+    init {
+        loadFocusQuote()
+    }
     fun startPauseTimer() {
         val currentState = _uiState.value
 
@@ -122,6 +127,22 @@ class FocusViewModel : ViewModel() {
         }
     }
 
+    fun loadFocusQuote() {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isQuoteLoading = true)
+            }
+
+            val quote = quoteRepository.getFocusQuote()
+
+            _uiState.update {
+                it.copy(
+                    quoteText = quote,
+                    isQuoteLoading = false
+                )
+            }
+        }
+    }
     fun updateShowProgressBar(enabled: Boolean) {
         _uiState.update {
             it.copy(showProgressBar = enabled)
