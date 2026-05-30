@@ -45,6 +45,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.ui.theme.CP3406_CP5603UtilityAppStarterTemplateTheme
 import kotlinx.coroutines.delay
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +80,8 @@ fun UtilityApp(
     var selectedTab by remember { mutableStateOf("Utility") }
 
     val uiState by focusViewModel.uiState.collectAsState()
-
+    val context = LocalContext.current
+    var previousStudyMode by remember { mutableStateOf(uiState.isStudyMode) }
     val totalSeconds = if (uiState.isStudyMode) {
         uiState.studyMinutes * 60
     } else {
@@ -84,6 +92,23 @@ fun UtilityApp(
         1f - uiState.remainingSeconds.toFloat() / totalSeconds.toFloat()
     } else {
         0f
+    }
+    LaunchedEffect(uiState.isStudyMode) {
+        if (previousStudyMode != uiState.isStudyMode) {
+            val message = if (uiState.isStudyMode) {
+                "Study mode started"
+            } else {
+                "Break mode started"
+            }
+
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+            if (uiState.vibrationEnabled) {
+                vibratePhone(context)
+            }
+
+            previousStudyMode = uiState.isStudyMode
+        }
     }
 
     Scaffold(
@@ -262,7 +287,7 @@ fun SettingsScreen(
         SettingChipGroup(
             title = "Study duration",
             selectedValue = studyMinutes,
-            options = listOf(25, 30, 45),
+            options = listOf(1, 25, 30, 45),
             suffix = "min",
             onValueChange = onStudyMinutesChange
         )
@@ -270,7 +295,7 @@ fun SettingsScreen(
         SettingChipGroup(
             title = "Break duration",
             selectedValue = breakMinutes,
-            options = listOf(5, 10, 15),
+            options = listOf(1, 5, 10, 15),
             suffix = "min",
             onValueChange = onBreakMinutesChange
         )
@@ -352,4 +377,34 @@ fun formatTime(seconds: Int): String {
     val minutes = seconds / 60
     val remainingSeconds = seconds % 60
     return "%02d:%02d".format(minutes, remainingSeconds)
+}
+
+fun vibratePhone(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager =
+            context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+
+        val vibrator = vibratorManager.defaultVibrator
+
+        vibrator.vibrate(
+            VibrationEffect.createOneShot(
+                400,
+                VibrationEffect.DEFAULT_AMPLITUDE
+            )
+        )
+    } else {
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(
+                VibrationEffect.createOneShot(
+                    400,
+                    VibrationEffect.DEFAULT_AMPLITUDE
+                )
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(400)
+        }
+    }
 }
