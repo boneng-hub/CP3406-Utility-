@@ -3,6 +3,8 @@ package au.edu.jcu.cp3406_cp5307_utilityappstartertemplate
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.viewmodel.FocusViewModel
+import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.viewmodel.ThemeViewModel
+import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.theme.ThemeMode
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -58,8 +60,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CP3406_CP5603UtilityAppStarterTemplateTheme {
-                UtilityApp()
+            val themeViewModel: ThemeViewModel = viewModel()
+            val themeMode by themeViewModel.themeMode.collectAsState()
+
+            CP3406_CP5603UtilityAppStarterTemplateTheme(themeMode = themeMode) {
+                UtilityApp(themeViewModel = themeViewModel)
             }
         }
     }
@@ -69,13 +74,14 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun UtilityAppPreview() {
     CP3406_CP5603UtilityAppStarterTemplateTheme {
-        UtilityApp()
+        UtilityApp(themeViewModel = null)
     }
 }
 
 @Composable
 fun UtilityApp(
-    focusViewModel: FocusViewModel = viewModel()
+    focusViewModel: FocusViewModel = viewModel(),
+    themeViewModel: ThemeViewModel? = null
 ) {
     var selectedTab by remember { mutableStateOf("Utility") }
 
@@ -155,7 +161,8 @@ fun UtilityApp(
                     onBreakMinutesChange = focusViewModel::updateBreakMinutes,
                     onShowProgressBarChange = focusViewModel::updateShowProgressBar,
                     onShowQuoteChange = focusViewModel::updateShowQuote,
-                    onVibrationEnabledChange = focusViewModel::updateVibrationEnabled
+                    onVibrationEnabledChange = focusViewModel::updateVibrationEnabled,
+                    themeViewModel = themeViewModel
                 )
             }
         }
@@ -271,8 +278,10 @@ fun SettingsScreen(
     onBreakMinutesChange: (Int) -> Unit,
     onShowProgressBarChange: (Boolean) -> Unit,
     onShowQuoteChange: (Boolean) -> Unit,
-    onVibrationEnabledChange: (Boolean) -> Unit
+    onVibrationEnabledChange: (Boolean) -> Unit,
+    themeViewModel: ThemeViewModel? = null
 ) {
+    val themeMode by themeViewModel?.themeMode?.collectAsState() ?: remember { mutableStateOf(ThemeMode.AUTO) }
     Column(
         Modifier
             .fillMaxSize()
@@ -283,6 +292,30 @@ fun SettingsScreen(
             text = "Settings",
             style = MaterialTheme.typography.headlineMedium
         )
+
+        // Theme selection
+        if (themeViewModel != null) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Theme: ${themeMode.name}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ThemeMode.entries.forEach { mode ->
+                        FilterChip(
+                            selected = themeMode == mode,
+                            onClick = { themeViewModel.updateThemeMode(mode) },
+                            label = { Text(mode.name) }
+                        )
+                    }
+                }
+            }
+        }
 
         SettingChipGroup(
             title = "Study duration",

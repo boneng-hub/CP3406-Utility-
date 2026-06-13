@@ -12,3 +12,4 @@ data class FocusUiState(
     val quoteText: String = "Loading focus quote...",
     val isQuoteLoading: Boolean = false
 )
+

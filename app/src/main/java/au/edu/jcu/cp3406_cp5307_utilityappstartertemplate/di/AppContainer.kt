@@ -15,3 +15,4 @@ object AppContainer {
 
     val quoteRepository: QuoteRepository = QuoteRepository(quoteApi)
 }
+
