@@ -54,7 +54,8 @@ class FocusViewModel(
         _uiState.update {
             it.copy(
                 isRunning = false,
-                remainingSeconds = resetSeconds
+                remainingSeconds = resetSeconds,
+                isReminderActive = false
             )
         }
     }
@@ -92,7 +93,8 @@ class FocusViewModel(
         _uiState.update {
             it.copy(
                 isStudyMode = newStudyMode,
-                remainingSeconds = newRemainingSeconds
+                remainingSeconds = newRemainingSeconds,
+                isReminderActive = true
             )
         }
     }
@@ -158,6 +160,13 @@ class FocusViewModel(
     fun updateVibrationEnabled(enabled: Boolean) {
         _uiState.update {
             it.copy(vibrationEnabled = enabled)
+        }
+    }
+
+
+    fun stopReminder() {
+        _uiState.update {
+            it.copy(isReminderActive = false)
         }
     }
 }

@@ -13,10 +13,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,7 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import au.edu.jcu.cp3406_cp5307_utilityappstartertemplate.ui.theme.CP3406_CP5603UtilityAppStarterTemplateTheme
-import kotlinx.coroutines.delay
 import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
@@ -54,6 +50,8 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
+import android.media.RingtoneManager
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,7 +62,7 @@ class MainActivity : ComponentActivity() {
             val themeMode by themeViewModel.themeMode.collectAsState()
 
             CP3406_CP5603UtilityAppStarterTemplateTheme(themeMode = themeMode) {
-                UtilityApp(themeViewModel = themeViewModel)
+                UtilityApp(themeViewModel = themeViewModel,)
             }
         }
     }
@@ -74,14 +72,15 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun UtilityAppPreview() {
     CP3406_CP5603UtilityAppStarterTemplateTheme {
-        UtilityApp(themeViewModel = null)
+        UtilityApp()
     }
 }
 
 @Composable
 fun UtilityApp(
     focusViewModel: FocusViewModel = viewModel(),
-    themeViewModel: ThemeViewModel? = null
+    themeViewModel: ThemeViewModel? = null,
+    startRepeatingVibration: (Context) -> Unit = ::startRepeatingVibration
 ) {
     var selectedTab by remember { mutableStateOf("Utility") }
 
@@ -109,11 +108,21 @@ fun UtilityApp(
 
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 
+            previousStudyMode = uiState.isStudyMode
+        }
+    }
+    LaunchedEffect(uiState.isReminderActive) {
+        if (uiState.isReminderActive) {
             if (uiState.vibrationEnabled) {
-                vibratePhone(context)
+                startRepeatingVibration(context)
             }
 
-            previousStudyMode = uiState.isStudyMode
+            while (uiState.isReminderActive) {
+                playReminderSound(context)
+                delay(2500)
+            }
+        } else {
+            stopVibration(context)
         }
     }
 
@@ -148,7 +157,9 @@ fun UtilityApp(
                     showQuote = uiState.showQuote,
                     isRunning = uiState.isRunning,
                     onStartPauseClick = focusViewModel::startPauseTimer,
-                    onResetClick = focusViewModel::resetTimer
+                    onResetClick = focusViewModel::resetTimer,
+                    isReminderActive = uiState.isReminderActive,
+                    onStopReminderClick = focusViewModel::stopReminder
                 )
 
                 "Settings" -> SettingsScreen(
@@ -182,7 +193,9 @@ fun UtilityScreen(
     isQuoteLoading: Boolean,
     onRefreshQuoteClick: () -> Unit,
     onStartPauseClick: () -> Unit,
-    onResetClick: () -> Unit
+    onResetClick: () -> Unit,
+    isReminderActive: Boolean,
+    onStopReminderClick: () -> Unit
 ) {
     val modeText = if (isStudyMode) "Study Mode" else "Break Mode"
 
@@ -262,6 +275,11 @@ fun UtilityScreen(
 
             OutlinedButton(onClick = onResetClick) {
                 Text("Reset")
+            }
+        }
+        if (isReminderActive) {
+            Button(onClick = onStopReminderClick) {
+                Text("Stop Reminder")
             }
         }
     }
@@ -412,7 +430,15 @@ fun formatTime(seconds: Int): String {
     return "%02d:%02d".format(minutes, remainingSeconds)
 }
 
-fun vibratePhone(context: Context) {
+fun startRepeatingVibration(context: Context) {
+    val pattern = longArrayOf(
+        0,    // 立刻开始
+        600,  // 震动 600ms
+        400,  // 停 400ms
+        600,  // 震动 600ms
+        1000  // 停 1000ms
+    )
+
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val vibratorManager =
             context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -420,24 +446,38 @@ fun vibratePhone(context: Context) {
         val vibrator = vibratorManager.defaultVibrator
 
         vibrator.vibrate(
-            VibrationEffect.createOneShot(
-                400,
-                VibrationEffect.DEFAULT_AMPLITUDE
-            )
+            VibrationEffect.createWaveform(pattern, 0)
         )
     } else {
         val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(
-                VibrationEffect.createOneShot(
-                    400,
-                    VibrationEffect.DEFAULT_AMPLITUDE
-                )
+                VibrationEffect.createWaveform(pattern, 0)
             )
         } else {
             @Suppress("DEPRECATION")
-            vibrator.vibrate(400)
+            vibrator.vibrate(pattern, 0)
         }
+    }
+}
+fun playReminderSound(context: Context) {
+    try {
+        val notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val ringtone = RingtoneManager.getRingtone(context, notificationUri)
+        ringtone.play()
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+fun stopVibration(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val vibratorManager =
+            context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+
+        vibratorManager.defaultVibrator.cancel()
+    } else {
+        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        vibrator.cancel()
     }
 }
