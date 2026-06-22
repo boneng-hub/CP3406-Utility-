@@ -8,6 +8,8 @@ FocusMate is a focused study/break timer that helps users:
 
 - start, pause, and reset a timer
 - switch between **study mode** and **break mode** automatically
+- trigger a reminder when mode switches (sound + optional vibration)
+- stop active reminders from the Utility screen
 - view an optional progress bar
 - fetch and display a daily focus quote from an external API
 - change study/break durations and UI preferences in a settings screen
@@ -24,6 +26,7 @@ The app uses a bottom navigation bar to switch between the two required screens:
 - Shows the current mode (`Study Mode` / `Break Mode`)
 - Displays the remaining time in `MM:SS` format
 - Includes start/pause and reset actions
+- Shows a `Stop Reminder` action when a reminder is active
 - Optionally shows a progress bar
 - Optionally shows a daily quote fetched from ZenQuotes
 
@@ -59,10 +62,16 @@ The app uses a bottom navigation bar to switch between the two required screens:
 2. Let Gradle sync finish
 3. Run the `app` module on an emulator or device
 
+Optional local compile check:
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin --console=plain
+```
+
 ### Requirements
 - Android Studio with a recent Android SDK installed
 - Internet permission enabled for quote fetching
-- A device/emulator capable of running the app's minimum SDK
+- A device/emulator capable of running the app's minimum SDK (`minSdk = 24`, Android 7.0+)
 
 ## Project structure
 
